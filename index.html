@@ -21,7 +21,8 @@
 
   body{
     min-height:100svh;
-    display:flex;align-items:center;justify-content:center;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:clamp(18px,4vw,34px);
     padding:clamp(14px,4vw,48px);
     background:
       radial-gradient(130% 95% at 50% -5%, #cf2430 0%, transparent 58%),
@@ -92,8 +93,37 @@
   }
 
 
-  .tick{animation:tick .4s cubic-bezier(.3,1.4,.5,1)}
-  @keyframes tick{0%{transform:translateY(0)}40%{transform:translateY(-.055em)}100%{transform:translateY(0)}}
+  /* ---------- heartbeat ---------- */
+  .pulse{
+    display:flex;align-items:center;justify-content:center;
+    width:clamp(40px,5.4vw,52px);height:clamp(40px,5.4vw,52px);
+    margin:0 auto clamp(14px,2.6vw,26px);
+    color:var(--chilli);
+    filter:drop-shadow(0 4px 8px rgba(142,15,24,.28));
+    will-change:transform;
+  }
+  .pulse svg{width:100%;height:100%;display:block;overflow:visible}
+  .pulse .beat{transform-box:fill-box;transform-origin:center}
+
+  /* lub-dub, one cycle per second */
+  .pulse.on .beat{animation:beat 1s cubic-bezier(.2,.6,.3,1) infinite}
+  @keyframes beat{
+    0%   {transform:scale(1)}
+    8%   {transform:scale(1.18)}
+    16%  {transform:scale(1)}
+    26%  {transform:scale(1.11)}
+    36%  {transform:scale(1)}
+    100% {transform:scale(1)}
+  }
+  .pulse.on .ring{
+    transform-box:fill-box;transform-origin:center;
+    animation:ring 1s ease-out infinite;
+  }
+  @keyframes ring{
+    0%   {transform:scale(1);opacity:.45}
+    30%  {transform:scale(1.5);opacity:0}
+    100% {transform:scale(1.5);opacity:0}
+  }
 
   @media (max-width:600px){
     /* one value per row, number above its label */
@@ -107,12 +137,21 @@
   }
 
   @media (prefers-reduced-motion:reduce){
-    .tick{animation:none}
+    .pulse .beat,.pulse .ring{animation:none}
   }
 </style>
 </head>
 <body>
   <main class="card">
+    <div class="pulse" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path class="ring" d="M12 21s-7.5-4.7-9.4-9.1C1.1 8.2 3.2 4.6 6.7 4.1 9 3.8 11 5.2 12 7c1-1.8 3-3.2 5.3-2.9 3.5.5 5.6 4.1 4.1 7.8C19.5 16.3 12 21 12 21z"
+              fill="none" stroke="currentColor" stroke-width="1.2" opacity=".45"/>
+        <path class="beat" d="M12 21s-7.5-4.7-9.4-9.1C1.1 8.2 3.2 4.6 6.7 4.1 9 3.8 11 5.2 12 7c1-1.8 3-3.2 5.3-2.9 3.5.5 5.6 4.1 4.1 7.8C19.5 16.3 12 21 12 21z"
+              fill="currentColor"/>
+      </svg>
+    </div>
+
     <div class="timer" role="timer" aria-live="off">
       <div class="unit"><span class="num" id="days">00</span><span class="lbl">Days</span></div>
       <div class="unit"><span class="num" id="hours">00</span><span class="lbl">Hours</span></div>
@@ -143,14 +182,16 @@
 
   function put(node, value) {
     if (prev[node.id] === value) return;
-    var seen = prev[node.id] !== undefined;
     prev[node.id] = value;
     node.textContent = value;
-    if (seen) {
-      node.classList.remove("tick");
-      void node.offsetWidth;
-      node.classList.add("tick");
-    }
+  }
+
+  var pulse = document.querySelector(".pulse");
+
+  function beat() {
+    pulse.classList.remove("on");
+    void pulse.offsetWidth; // restart the animation so it lands on the second
+    pulse.classList.add("on");
   }
 
   function render() {
@@ -164,10 +205,12 @@
     }
 
     var s = Math.floor(ms / 1000);
+    var sec = pad(s % 60, 2);
+    if (prev.seconds !== sec) beat();
     put(el.days, pad(Math.floor(s / 86400) % 100, 2));
     put(el.hours, pad(Math.floor(s / 3600) % 24, 2));
     put(el.minutes, pad(Math.floor(s / 60) % 60, 2));
-    put(el.seconds, pad(s % 60, 2));
+    put(el.seconds, sec);
   }
 
   var timer = setInterval(render, 250);
