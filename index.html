@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#7d0a12">
+<title>21 November 2026 · 08:30</title>
+<style>
+  :root{
+    --chilli:#c2202a;
+    --chilli-deep:#7d0a12;
+    --chilli-ink:#8e0f18;
+    --chilli-soft:rgba(142,15,24,.5);
+    --chilli-line:rgba(142,15,24,.14);
+    --white:#fffdfb;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html,body{height:100%}
+
+  body{
+    min-height:100svh;
+    display:flex;align-items:center;justify-content:center;
+    padding:clamp(14px,4vw,48px);
+    background:
+      radial-gradient(130% 95% at 50% -5%, #cf2430 0%, transparent 58%),
+      radial-gradient(90% 70% at 50% 108%, #8b0d16 0%, transparent 62%),
+      linear-gradient(180deg,var(--chilli) 0%,var(--chilli-deep) 100%);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* soft top sheen */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.14),transparent 32%);
+  }
+
+  .card{
+    position:relative;
+    width:100%;max-width:940px;
+    background:var(--white);
+    border-radius:8px;
+    padding:clamp(34px,6vw,64px) clamp(20px,5.5vw,72px);
+    box-shadow:0 30px 70px rgba(43,4,9,.42);
+  }
+
+  /* short chilli accent bar */
+  .card::before{
+    content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:54px;height:3px;border-radius:0 0 2px 2px;
+    background:var(--chilli);
+  }
+
+  .timer{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    align-items:center;
+    text-align:center;
+  }
+
+  .unit{position:relative;padding:clamp(10px,1.8vw,18px) clamp(4px,1.4vw,18px)}
+
+  /* ::before = horizontal rule, ::after = vertical rule */
+  .unit::before,.unit::after{content:"";position:absolute;background:var(--chilli-line)}
+
+  .unit + .unit::after{
+    top:14%;bottom:14%;left:0;width:1px;height:auto;
+  }
+
+  .num{
+    display:block;
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:clamp(46px,11vw,102px);
+    line-height:1;
+    font-weight:400;
+    letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums lining-nums;
+    color:var(--chilli-ink);
+  }
+
+  .lbl{
+    display:block;margin-top:clamp(10px,1.6vw,18px);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:clamp(9.5px,1.35vw,12.5px);
+    font-weight:500;
+    letter-spacing:.24em;
+    text-indent:.24em;
+    text-transform:uppercase;
+    color:var(--chilli-soft);
+  }
+
+
+  .tick{animation:tick .4s cubic-bezier(.3,1.4,.5,1)}
+  @keyframes tick{0%{transform:translateY(0)}40%{transform:translateY(-.055em)}100%{transform:translateY(0)}}
+
+  @media (max-width:600px){
+    /* one value per row, number above its label */
+    .timer{grid-template-columns:minmax(0,1fr)}
+    .unit{padding:clamp(16px,4.6vw,24px) clamp(8px,4vw,20px)}
+    .unit + .unit::after{content:none}
+    .unit + .unit::before{
+      top:0;bottom:auto;left:0;right:0;width:auto;height:1px;
+    }
+    .num{font-size:clamp(48px,15vw,72px)}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .tick{animation:none}
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="timer" role="timer" aria-live="off">
+      <div class="unit"><span class="num" id="days">00</span><span class="lbl">Days</span></div>
+      <div class="unit"><span class="num" id="hours">00</span><span class="lbl">Hours</span></div>
+      <div class="unit"><span class="num" id="minutes">00</span><span class="lbl">Minutes</span></div>
+      <div class="unit"><span class="num" id="seconds">00</span><span class="lbl">Seconds</span></div>
+    </div>
+  </main>
+
+<script>
+(function () {
+  "use strict";
+
+  var TARGET = new Date(2026, 10, 21, 8, 30, 0); // 21 Nov 2026, 08:30 local
+
+  var el = {
+    days: document.getElementById("days"),
+    hours: document.getElementById("hours"),
+    minutes: document.getElementById("minutes"),
+    seconds: document.getElementById("seconds")
+  };
+  var prev = {};
+
+  function pad(n, w) {
+    n = String(n);
+    while (n.length < w) n = "0" + n;
+    return n;
+  }
+
+  function put(node, value) {
+    if (prev[node.id] === value) return;
+    var seen = prev[node.id] !== undefined;
+    prev[node.id] = value;
+    node.textContent = value;
+    if (seen) {
+      node.classList.remove("tick");
+      void node.offsetWidth;
+      node.classList.add("tick");
+    }
+  }
+
+  function render() {
+    var ms = TARGET.getTime() - Date.now();
+
+    if (ms <= 0) {
+      put(el.days, "00"); put(el.hours, "00");
+      put(el.minutes, "00"); put(el.seconds, "00");
+      clearInterval(timer);
+      return;
+    }
+
+    var s = Math.floor(ms / 1000);
+    put(el.days, pad(Math.floor(s / 86400) % 100, 2));
+    put(el.hours, pad(Math.floor(s / 3600) % 24, 2));
+    put(el.minutes, pad(Math.floor(s / 60) % 60, 2));
+    put(el.seconds, pad(s % 60, 2));
+  }
+
+  var timer = setInterval(render, 250);
+  render();
+})();
+</script>
+</body>
+</html>
