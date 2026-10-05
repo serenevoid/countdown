@@ -93,11 +93,32 @@
   }
 
 
-  /* ---------- heartbeat ---------- */
-  .pulse{
+  /* ---------- names + heartbeat ---------- */
+  .couple{
     display:flex;align-items:center;justify-content:center;
+    gap:clamp(16px,5vw,44px);
+    margin:0 auto clamp(18px,3.4vw,32px);
+  }
+  .name{
+    text-align:center;
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:clamp(22px,4.4vw,38px);
+    line-height:1;
+    letter-spacing:.04em;
+    color:var(--chilli-ink);
+  }
+  .name .amp{
+    display:block;margin-top:.35em;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:clamp(10px,1.5vw,13px);
+    font-weight:500;letter-spacing:.3em;text-indent:.3em;
+    text-transform:uppercase;
+    color:var(--chilli-soft);
+  }
+
+  .pulse{
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
     width:clamp(40px,5.4vw,52px);height:clamp(40px,5.4vw,52px);
-    margin:0 auto clamp(14px,2.6vw,26px);
     color:var(--chilli);
     filter:drop-shadow(0 4px 8px rgba(142,15,24,.28));
     will-change:transform;
@@ -125,6 +146,26 @@
     100% {transform:scale(1.5);opacity:0}
   }
 
+  /* ---------- progress ---------- */
+  .progress{margin-top:clamp(24px,4.2vw,40px)}
+  .track{
+    position:relative;height:3px;border-radius:3px;
+    background:var(--chilli-line);overflow:hidden;
+  }
+  .fill{
+    position:absolute;top:0;bottom:0;left:0;width:0;
+    border-radius:3px;
+    background:linear-gradient(90deg,#a3121c,var(--chilli) 60%,#e0484f);
+    transition:width .6s cubic-bezier(.4,0,.2,1);
+  }
+  .pct{
+    margin-top:clamp(9px,1.4vw,13px);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:clamp(9.5px,1.35vw,12.5px);
+    font-weight:500;letter-spacing:.24em;text-indent:.24em;
+    text-transform:uppercase;color:var(--chilli-soft);
+  }
+
   @media (max-width:600px){
     /* one value per row, number above its label */
     .timer{grid-template-columns:minmax(0,1fr)}
@@ -143,13 +184,19 @@
 </head>
 <body>
   <main class="card">
-    <div class="pulse" aria-hidden="true">
-      <svg viewBox="0 0 24 24">
-        <path class="ring" d="M12 21s-7.5-4.7-9.4-9.1C1.1 8.2 3.2 4.6 6.7 4.1 9 3.8 11 5.2 12 7c1-1.8 3-3.2 5.3-2.9 3.5.5 5.6 4.1 4.1 7.8C19.5 16.3 12 21 12 21z"
-              fill="none" stroke="currentColor" stroke-width="1.2" opacity=".45"/>
-        <path class="beat" d="M12 21s-7.5-4.7-9.4-9.1C1.1 8.2 3.2 4.6 6.7 4.1 9 3.8 11 5.2 12 7c1-1.8 3-3.2 5.3-2.9 3.5.5 5.6 4.1 4.1 7.8C19.5 16.3 12 21 12 21z"
-              fill="currentColor"/>
-      </svg>
+    <div class="couple">
+      <p class="name">Siva <span class="amp">Bride</span></p>
+
+      <div class="pulse" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path class="ring" d="M12 21s-7.5-4.7-9.4-9.1C1.1 8.2 3.2 4.6 6.7 4.1 9 3.8 11 5.2 12 7c1-1.8 3-3.2 5.3-2.9 3.5.5 5.6 4.1 4.1 7.8C19.5 16.3 12 21 12 21z"
+                fill="none" stroke="currentColor" stroke-width="1.2" opacity=".45"/>
+          <path class="beat" d="M12 21s-7.5-4.7-9.4-9.1C1.1 8.2 3.2 4.6 6.7 4.1 9 3.8 11 5.2 12 7c1-1.8 3-3.2 5.3-2.9 3.5.5 5.6 4.1 4.1 7.8C19.5 16.3 12 21 12 21z"
+                fill="currentColor"/>
+        </svg>
+      </div>
+
+      <p class="name">Aju <span class="amp">Groom</span></p>
     </div>
 
     <div class="timer" role="timer" aria-live="off">
@@ -158,6 +205,11 @@
       <div class="unit"><span class="num" id="minutes">00</span><span class="lbl">Minutes</span></div>
       <div class="unit"><span class="num" id="seconds">00</span><span class="lbl">Seconds</span></div>
     </div>
+
+    <div class="progress">
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <p class="pct" id="pct">0% of the way there</p>
+    </div>
   </main>
 
 <script>
@@ -165,6 +217,7 @@
   "use strict";
 
   var TARGET = new Date(2026, 10, 21, 8, 30, 0); // 21 Nov 2026, 08:30 local
+  var START  = new Date(2026, 1, 5, 0, 0, 0);    // 5 Feb 2026, journey began
 
   var el = {
     days: document.getElementById("days"),
@@ -172,6 +225,8 @@
     minutes: document.getElementById("minutes"),
     seconds: document.getElementById("seconds")
   };
+  var fill = document.getElementById("fill");
+  var pct = document.getElementById("pct");
   var prev = {};
 
   function pad(n, w) {
@@ -186,6 +241,22 @@
     node.textContent = value;
   }
 
+  var SPAN = TARGET.getTime() - START.getTime();
+
+  function progress() {
+    var done = Date.now() - START.getTime();
+    if (done < 0) done = 0;
+    var r = done / SPAN;
+    if (r < 0) r = 0;
+    if (r > 1) r = 1;
+    fill.style.width = (r * 100).toFixed(2) + "%";
+    var shown = Math.floor(r * 100) + "%";
+    if (prev.pct !== shown) {
+      prev.pct = shown;
+      pct.textContent = r >= 1 ? "100% \u00b7 the wait is over" : shown + " of the way there";
+    }
+  }
+
   var pulse = document.querySelector(".pulse");
 
   function beat() {
@@ -196,6 +267,7 @@
 
   function render() {
     var ms = TARGET.getTime() - Date.now();
+    progress();
 
     if (ms <= 0) {
       put(el.days, "00"); put(el.hours, "00");
